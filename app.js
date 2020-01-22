@@ -1,51 +1,101 @@
-/*
-PLAYGHROUND SETTINGS
-*/
+// Class Food with coordinates, functions to create and eat food
+class Food {
+    constructor () {
+        this.positionX = 0;
+        this.positionY = 0;
+    }
+
+    create(borderX, borderY, baseUnit) {
+        // Generate random coordinate in the interval of <0, border>
+        this.positionX = Math.floor(Math.random() * (borderX/baseUnit))*baseUnit;
+        this.positionY = Math.floor(Math.random() * (borderY/baseUnit))*baseUnit;
+
+        if(checkSnakeBody(this.positionX, this.positionY)) {
+            this.create(borderX, borderY, baseUnit);
+        }
+        else {
+            document.getElementById("snakeFood").style.left = this.positionX + "px";
+            document.getElementById("snakeFood").style.top = this.positionY + "px"; 
+        }
+    }
+}
+
+// Snake
+class Snake {
+    constructor () {
+        // Columns [x, y, id]
+        this.body = [ [640, 340, 0], [640, 320, 1], [640, 300, 2] ];
+        this.moveDirection = "DOWN";
+    }
+
+    // Drawing snake's body according to coordinates stored in the main array
+    drawBody() {
+        for(let x = 0; x !== this.body.length; ++x) {
+            let sID = x;
+            document.getElementById(sID).style.left = this.body[x][0].toString() + "px";
+        }
+        for(let x = 0; x !== this.body.length; ++x) {
+            let sID = x;
+            document.getElementById(sID).style.top = this.body[x][1].toString() + "px";
+        }
+    }
+
+    // Pushing snake's coordinates through whole array
+    pushCoordinates(positionX, positionY) {
+        for (let x = this.body.length; x !== 0; --x) {
+            for (let y = 0; y !== 2; ++y) {
+                if (x === 1 && y === 0) {
+                    this.body[x - 1][y] = positionX;
+                }
+                else if (x === 1 && y === 1) {
+                    this.body[x - 1][y] = positionY;
+                }
+                else
+                    this.body[x - 1][y] = this.body[x - 2][y];
+            }
+        }
+    }
+
+    // Transfering food coordinates into snakes's body and creating one new unit
+    eat(foodX, foodY) {
+        this.body.push([foodX, foodY, this.body.length]);
+        let s = document.createElement("div");
+        s.setAttribute("id", (this.body.length-1).toString());
+        s.setAttribute("class", "snakeBody");
+        document.body.appendChild(s);
+    }
+}
+
+// PLAYGHROUND SETTINGS
 const BASE_UNIT = 20;
 const RIGHT_BORDER = 1280;
 const BOTTOM_BORDER = 720;
 const PLAYGROUND_REFRESH = 250;
 
-/*
-SNAKE SETTINGS
-*/
+// SNAKE SETTINGS
 let positionHeadLeft = 640;
 let positionHeadTop = 360;
-let moveDirection = "DOWN";
 
-let positionFoodLeft = 820;
-let positionFoodTop = 500;
-
-// x, y, id
-let snakeBody = [];
-snakeBody.push([640, 340, 0]);
-snakeBody.push([640, 320, 1]);
-snakeBody.push([640, 300, 2]);
-
-/*
-OTHER VARIABLES
-*/
+// OTHER VARIABLES
 let playgroundRefresh;
+let food = new Food();
+let snake = new Snake();
 
-/*
-FUNCTIONS
-*/
-
+// FUNCTIONS
 function startGame() {
     document.getElementById("playground").style.width = RIGHT_BORDER.toString() + "px";
     document.getElementById("playground").style.height = BOTTOM_BORDER.toString() + "px";
 
-    for(let i = 0; i !== snakeBody.length; ++i) {
+    for(let i = 0; i !== snake.body.length; ++i) {
         let s = document.createElement("div");
-        s.setAttribute("id", snakeBody[i][2].toString());
+        s.setAttribute("id", snake.body[i][2].toString());
         s.setAttribute("class", "snakeBody");
-        s.style.left = snakeBody[i][0].toString() + "px";
-        s.style.top = snakeBody[i][1].toString() + "px";
+        s.style.left = snake.body[i][0].toString() + "px";
+        s.style.top = snake.body[i][1].toString() + "px";
         document.body.appendChild(s);
     }
 
-    document.getElementById("snakeFood").style.left = positionFoodLeft.toString() + "px";
-    document.getElementById("snakeFood").style.top = positionFoodTop.toString() + "px";  
+    food.create(RIGHT_BORDER, BOTTOM_BORDER, BASE_UNIT, false, snake.body);
 
     document.getElementById("snakeHead").style.left = positionHeadLeft.toString() + "px";
     document.getElementById("snakeHead").style.top = positionHeadTop.toString() + "px";
@@ -53,189 +103,125 @@ function startGame() {
     playgroundRefresh = setInterval(moveSnake, PLAYGROUND_REFRESH)
 }
 
+// Checking given coordinates against snake's body (not head)
 function checkSnakeBody(positionX, positionY) {
-    for(let i = 0; i !== snakeBody.length; ++i) {
-        if(positionX === snakeBody[i][0] && positionY === snakeBody[i][1]) {
+    for(let i = 0; i !== snake.body.length; ++i) {
+        if(positionX === snake.body[i][0] && positionY === snake.body[i][1]) {
             return true;
         }
     }
     return false;
 }
 
+// Next move cannot be on the position of snake body nor playground border
 function nextMove(nextMoveLeft, nextMoveTop) {
-    if((nextMoveLeft < 0) || (nextMoveLeft === RIGHT_BORDER) || (nextMoveTop < 0) || (nextMoveTop > BOTTOM_BORDER)) {
+    if((nextMoveLeft < 0) || (nextMoveLeft === RIGHT_BORDER) || (nextMoveTop < 0) || (nextMoveTop === BOTTOM_BORDER)) {
         return false;
     }
     else if(checkSnakeBody(nextMoveLeft, nextMoveTop)) {
         return false;
     }
-    else if(positionHeadLeft === positionFoodLeft && positionHeadTop === positionFoodTop) {
-        eatFood();
+    else if(positionHeadLeft === food.positionX && positionHeadTop === food.positionY) {
+        snake.eat(food.positionX, food.positionY);
+        food.create(RIGHT_BORDER, BOTTOM_BORDER, BASE_UNIT);
         return true;
     }
     return true;
 }
 
+// Dialog with possibility to restart (reload) the game
 function endOfGame() {
-    if(confirm("*** Game over! ***\nStart a new game?")) {
+    if(confirm(`*** Game over! ***\n** You scored ${snake.body.length-3} points! **\n* Start a new game? *`)) {
         document.location.reload(true);
     }
     else clearInterval(playgroundRefresh);
 }
 
-function eatFood() {
-    positionFoodLeft = Math.floor(Math.random() * (RIGHT_BORDER/BASE_UNIT))*BASE_UNIT;
-    positionFoodTop = Math.floor(Math.random() * (BOTTOM_BORDER/BASE_UNIT))*BASE_UNIT;
-
-    if(checkSnakeBody(positionFoodLeft, positionFoodTop)) {
-        eatFood();
-    }
-    else {
-        snakeBody.push([positionFoodLeft, positionFoodTop, snakeBody.length]);
-        let s = document.createElement("div");
-        s.setAttribute("id", (snakeBody.length-1).toString());
-        s.setAttribute("class", "snakeBody");
-        document.body.appendChild(s);
-
-        document.getElementById("snakeFood").style.left = positionFoodLeft + "px";
-        document.getElementById("snakeFood").style.top = positionFoodTop + "px"; 
-    }
-}
-
-function drawSnakeBody() {
-    for(let x = 0; x !== snakeBody.length; ++x) {
-        let sID = x;
-        document.getElementById(sID).style.left = snakeBody[x][0].toString() + "px";
-    }
-    for(let x = 0; x !== snakeBody.length; ++x) {
-        let sID = x;
-        document.getElementById(sID).style.top = snakeBody[x][1].toString() + "px";
-    }
-}
-
+// Main function that handles the snake's move
 function moveSnake() {
-    switch(moveDirection) {
+    switch(snake.moveDirection) {
         case "LEFT":
             if(nextMove(positionHeadLeft - BASE_UNIT, positionHeadTop)) {
-                for(let x = snakeBody.length; x !== 0; --x) {
-                    for(let y = 0; y !== 2; ++y) {
-                        if(x === 1 && y === 0) {
-                            snakeBody[x-1][y] = positionHeadLeft;
-                        }
-                        else if (x === 1 && y === 1) {
-                            snakeBody[x-1][y] = positionHeadTop;
-                        }
-                        else snakeBody[x-1][y] = snakeBody[x-2][y];
-                    }
-                }
+                snake.pushCoordinates(positionHeadLeft, positionHeadTop);
 
                 positionHeadLeft -= BASE_UNIT;
                 document.getElementById("snakeHead").style.left = positionHeadLeft.toString() + "px";
 
-                drawSnakeBody();
+                snake.drawBody();
             }
             else endOfGame();
             break;
 
         case "RIGHT":            
             if(nextMove(positionHeadLeft + BASE_UNIT, positionHeadTop)) {
-                for(let x = snakeBody.length; x !== 0; --x) {
-                    for(let y = 0; y !== 2; ++y) {
-                        if(x === 1 && y === 0) {
-                            snakeBody[x-1][y] = positionHeadLeft;
-                        }
-                        else if (x === 1 && y === 1) {
-                            snakeBody[x-1][y] = positionHeadTop;
-                        }
-                        else snakeBody[x-1][y] = snakeBody[x-2][y];
-                    }
-                }
+                snake.pushCoordinates(positionHeadLeft, positionHeadTop);
 
                 positionHeadLeft += BASE_UNIT;
                 document.getElementById("snakeHead").style.left = positionHeadLeft.toString() + "px";
 
-                drawSnakeBody();
+                snake.drawBody();
             }
             else endOfGame();
             break;
 
         case "UP":
             if(nextMove(positionHeadLeft, positionHeadTop - BASE_UNIT)) {
-                for(let x = snakeBody.length; x !== 0; --x) {
-                    for(let y = 0; y !== 2; ++y) {
-                        if(x === 1 && y === 0) {
-                            snakeBody[x-1][y] = positionHeadLeft;
-                        }
-                        else if (x === 1 && y === 1) {
-                            snakeBody[x-1][y] = positionHeadTop;
-                        }
-                        else snakeBody[x-1][y] = snakeBody[x-2][y];
-                    }
-                }
+                snake.pushCoordinates(positionHeadLeft, positionHeadTop);
 
                 positionHeadTop -= BASE_UNIT;
                 document.getElementById("snakeHead").style.top = positionHeadTop.toString() + "px";
 
-                drawSnakeBody();
+                snake.drawBody();
             }
             else endOfGame();
             break;
 
         case "DOWN":
             if(nextMove(positionHeadLeft, positionHeadTop + BASE_UNIT)) {
-                for(let x = snakeBody.length; x !== 0; --x) {
-                    for(let y = 0; y !== 2; ++y) {
-                        if(x === 1 && y === 0) {
-                            snakeBody[x-1][y] = positionHeadLeft;
-                        }
-                        else if (x === 1 && y === 1) {
-                            snakeBody[x-1][y] = positionHeadTop;
-                        }
-                        else snakeBody[x-1][y] = snakeBody[x-2][y];
-                    }
-                }
+                snake.pushCoordinates(positionHeadLeft, positionHeadTop);
 
                 positionHeadTop += BASE_UNIT;
                 document.getElementById("snakeHead").style.top = positionHeadTop.toString() + "px";
 
-                drawSnakeBody();
+                snake.drawBody();
             }
             else endOfGame();
             break;
     }
 }
 
+// Handling pressed key
 let event = document.getElementById("playground");
 
 document.onkeydown = function(event) {
     switch (event.keyCode) {
         case 37:
             // LEFT key, forbidden to move RIGHT
-            if(moveDirection === "RIGHT") {
+            if(snake.moveDirection === "RIGHT") {
                 break;
             }
-            else moveDirection = "LEFT";
+            else snake.moveDirection = "LEFT";
             break;
         case 38:
             // UP key, forbidden to move DOWN
-            if(moveDirection === "DOWN") {
+            if(snake.moveDirection === "DOWN") {
                 break;
             }
-            else moveDirection = "UP";
+            else snake.moveDirection = "UP";
             break;
         case 39:
             // RIGHT key, forbidden to move LEFT
-            if(moveDirection === "LEFT") {
+            if(snake.moveDirection === "LEFT") {
                 break;
             }
-            else moveDirection = "RIGHT";
+            else snake.moveDirection = "RIGHT";
             break;
         case 40:
             // DOWN key, forbidden to move UP
-            if(moveDirection === "UP") {
+            if(snake.moveDirection === "UP") {
                 break;
             }
-            else moveDirection = "DOWN";
+            else snake.moveDirection = "DOWN";
             break;
         }
     };
