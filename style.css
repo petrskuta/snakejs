@@ -3,21 +3,21 @@ body {
 }
 
 #playground {
-  background-color: green;
+  background-color: black;
   position: absolute;
   left: 0px;
   top: 0px;
 }
 
 #snakeHead {
-  background-color: yellow;
+  background-color: green;
   position: absolute; 
   width: 20px;
   height: 20px;
 }
 
 .snakeBody {
-  background-color: blue;
+  background-color: olive;
   position: absolute; 
   width: 20px;
   height: 20px;

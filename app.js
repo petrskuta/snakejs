@@ -13,9 +13,6 @@ let positionHeadLeft = 640;
 let positionHeadTop = 360;
 let moveDirection = "DOWN";
 
-let nextMoveLeft = positionHeadLeft;
-let nextMoveTop = positionHeadTop + BASE_UNIT;
-
 let positionFoodLeft = 820;
 let positionFoodTop = 500;
 
@@ -56,8 +53,20 @@ function startGame() {
     playgroundRefresh = setInterval(moveSnake, PLAYGROUND_REFRESH)
 }
 
-function nextMove() {
-    if((nextMoveLeft < 0) || (nextMoveLeft === RIGHT_BORDER) || (nextMoveTop <= 0) || (nextMoveTop > BOTTOM_BORDER)) {
+function checkSnakeBody(positionX, positionY) {
+    for(let i = 0; i !== snakeBody.length; ++i) {
+        if(positionX === snakeBody[i][0] && positionY === snakeBody[i][1]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function nextMove(nextMoveLeft, nextMoveTop) {
+    if((nextMoveLeft < 0) || (nextMoveLeft === RIGHT_BORDER) || (nextMoveTop < 0) || (nextMoveTop > BOTTOM_BORDER)) {
+        return false;
+    }
+    else if(checkSnakeBody(nextMoveLeft, nextMoveTop)) {
         return false;
     }
     else if(positionHeadLeft === positionFoodLeft && positionHeadTop === positionFoodTop) {
@@ -75,17 +84,22 @@ function endOfGame() {
 }
 
 function eatFood() {
-    snakeBody.push([positionFoodLeft, positionFoodTop, snakeBody.length]);
-    let s = document.createElement("div");
-    s.setAttribute("id", (snakeBody.length-1).toString());
-    s.setAttribute("class", "snakeBody");
-    document.body.appendChild(s);
-
     positionFoodLeft = Math.floor(Math.random() * (RIGHT_BORDER/BASE_UNIT))*BASE_UNIT;
     positionFoodTop = Math.floor(Math.random() * (BOTTOM_BORDER/BASE_UNIT))*BASE_UNIT;
 
-    document.getElementById("snakeFood").style.left = positionFoodLeft + "px";
-    document.getElementById("snakeFood").style.top = positionFoodTop + "px"; 
+    if(checkSnakeBody(positionFoodLeft, positionFoodTop)) {
+        eatFood();
+    }
+    else {
+        snakeBody.push([positionFoodLeft, positionFoodTop, snakeBody.length]);
+        let s = document.createElement("div");
+        s.setAttribute("id", (snakeBody.length-1).toString());
+        s.setAttribute("class", "snakeBody");
+        document.body.appendChild(s);
+
+        document.getElementById("snakeFood").style.left = positionFoodLeft + "px";
+        document.getElementById("snakeFood").style.top = positionFoodTop + "px"; 
+    }
 }
 
 function drawSnakeBody() {
@@ -102,9 +116,7 @@ function drawSnakeBody() {
 function moveSnake() {
     switch(moveDirection) {
         case "LEFT":
-            nextMoveLeft -= BASE_UNIT;
-
-            if(nextMove()) {
+            if(nextMove(positionHeadLeft - BASE_UNIT, positionHeadTop)) {
                 for(let x = snakeBody.length; x !== 0; --x) {
                     for(let y = 0; y !== 2; ++y) {
                         if(x === 1 && y === 0) {
@@ -125,10 +137,8 @@ function moveSnake() {
             else endOfGame();
             break;
 
-        case "RIGHT":
-            nextMoveLeft += BASE_UNIT;
-            
-            if(nextMove()) {
+        case "RIGHT":            
+            if(nextMove(positionHeadLeft + BASE_UNIT, positionHeadTop)) {
                 for(let x = snakeBody.length; x !== 0; --x) {
                     for(let y = 0; y !== 2; ++y) {
                         if(x === 1 && y === 0) {
@@ -150,9 +160,7 @@ function moveSnake() {
             break;
 
         case "UP":
-            nextMoveTop -= BASE_UNIT;
-
-            if(nextMove()) {
+            if(nextMove(positionHeadLeft, positionHeadTop - BASE_UNIT)) {
                 for(let x = snakeBody.length; x !== 0; --x) {
                     for(let y = 0; y !== 2; ++y) {
                         if(x === 1 && y === 0) {
@@ -174,9 +182,7 @@ function moveSnake() {
             break;
 
         case "DOWN":
-            nextMoveTop += BASE_UNIT;
-
-            if(nextMove()) {
+            if(nextMove(positionHeadLeft, positionHeadTop + BASE_UNIT)) {
                 for(let x = snakeBody.length; x !== 0; --x) {
                     for(let y = 0; y !== 2; ++y) {
                         if(x === 1 && y === 0) {
